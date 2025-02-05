@@ -33,6 +33,7 @@ pub mod macros;
 
 pub mod array_has;
 pub mod cardinality;
+pub mod array_compact;
 pub mod concat;
 pub mod dimension;
 pub mod distance;
@@ -132,6 +133,7 @@ pub fn all_default_nested_functions() -> Vec<Arc<ScalarUDF>> {
         extract::array_slice_udf(),
         extract::array_any_value_udf(),
         make_array::make_array_udf(),
+        array_compact::array_compact_udf(),
         array_has::array_has_udf(),
         array_has::array_has_all_udf(),
         array_has::array_has_any_udf(),

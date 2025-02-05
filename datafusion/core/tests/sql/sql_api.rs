@@ -20,6 +20,43 @@ use datafusion::prelude::*;
 use tempfile::TempDir;
 
 #[tokio::test]
+async fn dml_output_schema2() {
+    use arrow::datatypes::Schema;
+    use arrow::datatypes::{DataType, Field};
+
+    let ctx = SessionContext::new();
+    ctx.sql("CREATE TABLE test (x int)").await.unwrap();
+    let sql = "INSERT INTO test VALUES (1)";
+    let df = ctx.sql(sql).await.unwrap();
+    let count_schema = Schema::new(vec![Field::new("count", DataType::UInt64, false)]);
+    assert_eq!(Schema::from(df.schema()), count_schema);
+
+    let sql2 = "Select array_compact(make_array(5, NULL, 3, NULL, 4, 6))";
+    let df2 = ctx.sql(sql2).await.unwrap();
+    df2.show().await;
+
+    // let sql3 = "Select array_min(make_array('a', 'b', 'c'))";
+    // let df3 = ctx.sql(sql3).await.unwrap();
+    // df3.show().await;
+    //
+    // let sql4 = "Select array_min()";
+    // let df4 = ctx.sql(sql4).await.unwrap();
+    // df4.show().await;
+
+
+
+    // let sql3 = "Select array_sort(make_array('d', 'b', 'c'))";
+    // let df3 = ctx.sql(sql3).await.unwrap();
+    // df3.show().await;
+
+    // let batches = df2.collect().await;
+    // let result = batches.unwrap().iter().collect::<Vec<RecordBatch>>();
+    // let res = result.iter().collect::<i64>();
+    // assert_eq!(res, Some(&3));
+}
+
+
+#[tokio::test]
 async fn unsupported_ddl_returns_error() {
     // Verify SessionContext::with_sql_options errors appropriately
     let ctx = SessionContext::new();
