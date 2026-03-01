@@ -1257,10 +1257,18 @@ impl SessionContext {
         note = "please use `parse_capacity_limit` function instead."
     )]
     pub fn parse_memory_limit(limit: &str) -> Result<usize> {
+        if limit.trim().is_empty() {
+            return Err(plan_datafusion_err!("Empty limit value found!"));
+        }
         let (number, unit) = limit.split_at(limit.len() - 1);
         let number: f64 = number.parse().map_err(|_| {
             plan_datafusion_err!("Failed to parse number from memory limit '{limit}'")
         })?;
+        if number.is_sign_negative() || number.is_infinite() {
+            return Err(plan_datafusion_err!(
+                "Limit value should be positive finite number"
+            ));
+        }
 
         match unit {
             "K" => Ok((number * 1024.0) as usize),
@@ -1288,7 +1296,9 @@ impl SessionContext {
     /// ```
     pub fn parse_capacity_limit(config_name: &str, limit: &str) -> Result<usize> {
         if limit.trim().is_empty() {
-             return plan_datafusion_err!("Empty limit value for '{config_name}'");
+            return Err(plan_datafusion_err!(
+                "Empty limit value found for '{config_name}'"
+            ));
         }
         let (number, unit) = limit.split_at(limit.len() - 1);
         let number: f64 = number.parse().map_err(|_| {
@@ -1296,6 +1306,11 @@ impl SessionContext {
                 "Failed to parse number from '{config_name}', limit '{limit}'"
             )
         })?;
+        if number.is_sign_negative() || number.is_infinite() {
+            return Err(plan_datafusion_err!(
+                "Limit value should be positive finite number for '{config_name}'"
+            ));
+        }
 
         match unit {
             "K" => Ok((number * 1024.0) as usize),
@@ -2799,6 +2814,73 @@ mod tests {
         for duration in ["0s", "0m", "1s0m", "1s1m"] {
             let have = SessionContext::parse_duration(duration);
             assert!(have.is_err());
+        }
+    }
+
+    #[test]
+    fn test_parse_memory_limit() {
+        // Valid memory_limit
+        for (limit, want) in [
+            ("1.5K", (1.5 * 1024.0) as usize),
+            ("2M", (2f64 * 1024.0 * 1024.0) as usize),
+            ("1G", (1f64 * 1024.0 * 1024.0 * 1024.0) as usize),
+        ] {
+            #[expect(deprecated)]
+            let have = SessionContext::parse_memory_limit(limit).unwrap();
+            assert_eq!(want, have);
+        }
+
+        // Invalid memory_limit
+        for limit in [
+            "1B",
+            "1T",
+            "",
+            " ",
+            "XYZG",
+            "-1G",
+            "infG",
+            "-infG",
+            "G",
+            "1024B",
+            "invalid_size",
+        ] {
+            #[expect(deprecated)]
+            let have = SessionContext::parse_memory_limit(limit);
+            assert!(have.is_err());
+        }
+    }
+
+    #[test]
+    fn test_parse_capacity_limit() {
+        const MEMORY_LIMIT: &str = "datafusion.runtime.memory_limit";
+
+        // Valid capacity_limit
+        for (limit, want) in [
+            ("1.5K", (1.5 * 1024.0) as usize),
+            ("2M", (2f64 * 1024.0 * 1024.0) as usize),
+            ("1G", (1f64 * 1024.0 * 1024.0 * 1024.0) as usize),
+        ] {
+            let have = SessionContext::parse_capacity_limit(MEMORY_LIMIT, limit).unwrap();
+            assert_eq!(want, have);
+        }
+
+        // Invalid capacity_limit
+        for limit in [
+            "1B",
+            "1T",
+            "",
+            " ",
+            "XYZG",
+            "-1G",
+            "infG",
+            "-infG",
+            "G",
+            "1024B",
+            "invalid_size",
+        ] {
+            let have = SessionContext::parse_capacity_limit(MEMORY_LIMIT, limit);
+            assert!(have.is_err());
+            assert!(have.unwrap_err().to_string().contains(MEMORY_LIMIT));
         }
     }
 }

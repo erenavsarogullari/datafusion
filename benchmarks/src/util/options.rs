@@ -126,6 +126,9 @@ fn parse_capacity_limit(limit: &str) -> Result<usize, String> {
     let number: f64 = number
         .parse()
         .map_err(|_| format!("Failed to parse number from capacity limit '{limit}'"))?;
+    if number.is_sign_negative() || number.is_infinite() {
+        return Err("Limit value should be positive finite number".to_string());
+    }
 
     match unit {
         "K" => Ok((number * 1024.0) as usize),
@@ -153,5 +156,14 @@ mod tests {
 
         // Test invalid number
         assert!(parse_capacity_limit("abcM").is_err());
+
+        // Test negative number
+        assert!(parse_capacity_limit("-1M").is_err());
+
+        // Test infinite number
+        assert!(parse_capacity_limit("infM").is_err());
+
+        // Test negative infinite number
+        assert!(parse_capacity_limit("-infM").is_err());
     }
 }
