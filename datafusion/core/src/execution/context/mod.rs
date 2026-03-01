@@ -1287,6 +1287,9 @@ impl SessionContext {
     /// );
     /// ```
     pub fn parse_capacity_limit(config_name: &str, limit: &str) -> Result<usize> {
+        if limit.trim().is_empty() {
+             return plan_datafusion_err!("Empty limit value for '{config_name}'");
+        }
         let (number, unit) = limit.split_at(limit.len() - 1);
         let number: f64 = number.parse().map_err(|_| {
             plan_datafusion_err!(
