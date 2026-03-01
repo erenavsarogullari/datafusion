@@ -1236,6 +1236,40 @@ impl SessionContext {
         Ok(())
     }
 
+    /// Parse memory limit from string to number of bytes
+    /// Supports formats like '1.5G', '100M', '512K'
+    ///
+    /// # Examples
+    /// ```
+    /// use datafusion::execution::context::SessionContext;
+    ///
+    /// assert_eq!(
+    ///     SessionContext::parse_memory_limit("1M").unwrap(),
+    ///     1024 * 1024
+    /// );
+    /// assert_eq!(
+    ///     SessionContext::parse_memory_limit("1.5G").unwrap(),
+    ///     (1.5 * 1024.0 * 1024.0 * 1024.0) as usize
+    /// );
+    /// ```
+    #[deprecated(
+        since = "53.0.0",
+        note = "please use `parse_capacity_limit` function instead."
+    )]
+    pub fn parse_memory_limit(limit: &str) -> Result<usize> {
+        let (number, unit) = limit.split_at(limit.len() - 1);
+        let number: f64 = number.parse().map_err(|_| {
+            plan_datafusion_err!("Failed to parse number from memory limit '{limit}'")
+        })?;
+
+        match unit {
+            "K" => Ok((number * 1024.0) as usize),
+            "M" => Ok((number * 1024.0 * 1024.0) as usize),
+            "G" => Ok((number * 1024.0 * 1024.0 * 1024.0) as usize),
+            _ => plan_err!("Unsupported unit '{unit}' in memory limit '{limit}'"),
+        }
+    }
+
     /// Parse capacity limit from string to number of bytes by allowing units: K, M and G.
     /// Supports formats like '1.5G', '100M', '512K'
     ///

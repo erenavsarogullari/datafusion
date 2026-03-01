@@ -117,7 +117,7 @@ impl CommonOpt {
 }
 
 /// Parse capacity limit from string to number of bytes by allowing units: K, M and G.
-/// Supports formats like '1.5G', '100M' -> 1572864
+/// Supports formats like '1.5G' -> 1610612736, '100M' -> 104857600
 fn parse_capacity_limit(limit: &str) -> Result<usize, String> {
     let (number, unit) = limit.split_at(limit.len() - 1);
     let number: f64 = number
