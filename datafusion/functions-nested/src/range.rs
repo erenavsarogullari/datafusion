@@ -289,7 +289,7 @@ impl Range {
     ///
     /// # Arguments
     ///
-    /// * `args` - An array of 1 to 3 ArrayRefs representing start, stop, and step(step value can not be zero) values.
+    /// * `args` - An array of 1 to 3 ArrayRefs representing start, stop, and step(step value can not be zero.) values.
     ///
     /// # Examples
     ///
@@ -330,23 +330,10 @@ impl Range {
                         usize::try_from(step.unsigned_abs()).map_err(|_| {
                             not_impl_datafusion_err!("step {} can't fit into usize", step)
                         })?;
-                    if start < stop {
-                        values.extend(
-                            gen_range_iter(
-                                start,
-                                stop,
-                                step < 0,
-                                self.include_upper_bound,
-                            )
+                    values.extend(
+                        gen_range_iter(start, stop, step < 0, self.include_upper_bound)
                             .step_by(step_abs),
-                        )
-                    } else {
-                        values.extend(
-                            gen_range_iter(start, stop, true, self.include_upper_bound)
-                                .step_by(step_abs),
-                        )
-                    };
-
+                    );
                     offsets.push(values.len() as i32);
                     valid.append_non_null();
                 }
